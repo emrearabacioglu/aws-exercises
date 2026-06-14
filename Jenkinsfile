@@ -1,17 +1,36 @@
 pipeline {
     agent any
-      tools {
+    tools {
         nodejs "my-nodejs"
-      }
-      stages {
+    }
+    environment {
+        DOCKER_USER = "emrearabacioglu"
+        IMAGE_NAME = "${DOCKER_USER}/nodejs-app:1.0.${BUILD_NUMBER}"
+    }
+    stages {
         stage('increment version') {
-          ...
+            steps {
+                dir('app') {
+                    sh 'npm version patch'
+                }
+            }
         }
         stage('Run tests') {
-          ...
+            steps {
+                dir('app') {
+                    sh 'npm install'
+                    sh 'npm test'
+                }
+            }
         }
         stage('Build and Push docker image') {
-          ...
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                    sh "docker build -t ${IMAGE_NAME} ."
+                    sh "docker login -u ${USER} -p ${PASS}"
+                    sh "docker push ${IMAGE_NAME}"
+                }
+            }
         }
         stage('deploy to EC2') {
             steps {
@@ -28,8 +47,15 @@ pipeline {
             }
         }
         stage('commit version update') {
-          ...
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'github-credentials', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                    sh 'git config --global user.email "jenkins@example.com"'
+                    sh 'git config --global user.name "Jenkins"'
+                    sh 'git add app/package.json app/package-lock.json'
+                    sh 'git commit -m "ci: version bump"'
+                    sh "git push https://${USER}:${PASS}@github.com/emrearabacioglu/aws-exercises HEAD:main"
+                }
+            }
         }
     }     
 }
-
