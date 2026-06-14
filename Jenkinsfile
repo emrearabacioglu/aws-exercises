@@ -24,6 +24,9 @@ pipeline {
             }
         }
         stage('Build and Push docker image') {
+            when {
+                branch 'main'
+            }
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
                     sh "docker build -t ${IMAGE_NAME} ."
@@ -33,6 +36,9 @@ pipeline {
             }
         }
         stage('deploy to EC2') {
+            when {
+                branch 'main'
+            }
             steps {
                 script {
                    def shellCmd = "bash ./server-cmds.sh ${IMAGE_NAME}"
@@ -47,6 +53,9 @@ pipeline {
             }
         }
         stage('commit version update') {
+            when {
+                branch 'main'
+            }
             steps {
                 withCredentials([usernamePassword(credentialsId: 'github-credentials', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
                     sh 'git config --global user.email "jenkins@example.com"'
