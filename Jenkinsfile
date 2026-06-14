@@ -9,6 +9,9 @@ pipeline {
     }
     stages {
         stage('increment version') {
+            when { 
+                not { changelog '.*ci: version bump.*' } 
+            }
             steps {
                 dir('app') {
                     sh 'npm version patch'
@@ -16,6 +19,9 @@ pipeline {
             }
         }
         stage('Run tests') {
+            when { 
+                not { changelog '.*ci: version bump.*' } 
+            }
             steps {
                 dir('app') {
                     sh 'npm install'
@@ -24,8 +30,11 @@ pipeline {
             }
         }
         stage('Build and Push docker image') {
-            when {
-                branch 'main'
+            when { 
+                allOf {
+                    branch 'main'
+                    not { changelog '.*ci: version bump.*' }
+                }
             }
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
@@ -36,8 +45,11 @@ pipeline {
             }
         }
         stage('deploy to EC2') {
-            when {
-                branch 'main'
+            when { 
+                allOf {
+                    branch 'main'
+                    not { changelog '.*ci: version bump.*' }
+                }
             }
             steps {
                 script {
@@ -53,8 +65,11 @@ pipeline {
             }
         }
         stage('commit version update') {
-            when {
-                branch 'main'
+            when { 
+                allOf {
+                    branch 'main'
+                    not { changelog '.*ci: version bump.*' }
+                }
             }
             steps {
                 withCredentials([usernamePassword(credentialsId: 'github-credentials', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
